@@ -1,0 +1,15 @@
+# Entornos virtuales locales
+.venv/
+venv/
+env/
+reto-nov/
+
+# Archivos temporales de Python y notebooks
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Archivos locales
+.DS_Store
+.env
