@@ -6,7 +6,21 @@ Preparación de datos para anticipar si una máquina tendrá una falla en las si
 
 Ya están implementados la revisión de datos, el análisis exploratorio, la relación entre mantenimiento y fallas, y el pipeline que integra variables históricas, etiquetas y partición temporal.
 
-Quedan pendientes los modelos de línea base (regresión logística y XGBoost o LightGBM), su evaluación en validación y el reporte de la primera entrega. Las comprobaciones de instalación con datos sintéticos descritas más abajo no son resultados de estos modelos sobre el proyecto.
+### Cierre de la primera entrega
+
+La primera fase queda identificada con el tag **`entrega1`**, que conserva la versión del código correspondiente al reporte: revisión y EDA, análisis de mantenimiento, variables históricas, etiquetas, partición temporal y comparación de regresión logística y XGBoost en validación. Los resultados están en `Modelación/05_línea_base_clásica.ipynb`; el reporte se entrega por separado.
+
+La versión entregada puede consultarse en [GitHub: entrega1](https://github.com/emiliano-guzman/mantenimiento_reto/tree/entrega1). El trabajo de las siguientes fases podrá continuar en `main` sin mover este tag. La evaluación de modelos sobre prueba sigue reservada para la tercera semana.
+
+Para recuperar esta versión en una copia del repositorio:
+
+```bash
+git fetch --tags
+git switch --detach entrega1
+```
+
+Este comando deja la copia en la versión entregada para consultarla o reproducirla. Para volver a la rama de trabajo: `git switch main`. Ejecutar los cambios de versión con el trabajo local previamente guardado en Git o resguardado.
+
 
 ## Organización
 
@@ -29,6 +43,8 @@ Preprocesamiento/
 ├── 03_mantenimiento_fallas.ipynb
 ├── 04_preparación_datos.ipynb
 └── preparar_datos.py
+Modelación/
+└── 05_línea_base_clásica.ipynb
 requirements.txt
 ```
 
@@ -130,7 +146,7 @@ Al repetir la ejecución se reemplazan esos tres archivos generados. Los cinco C
 
 Las variables se calculan por máquina antes de separar periodos, para que septiembre pueda aprovechar historia de agosto. Los sensores y los errores usan ventanas históricas que incluyen la hora actual, suponiendo que ya se observó su información. Los reemplazos se consultan estrictamente antes de la hora actual; también se utiliza el historial disponible de 2014.
 
-Las primeras ventanas de sensores que no tienen 3 o 24 mediciones completas quedan vacías. Si no existe un reemplazo anterior conocido, su tiempo también queda vacío. No se rellena con información futura. La ausencia de registros de errores se cuenta como cero, suponiendo un registro completo. La imputación de faltantes y codificación para modelos se implementarán en el siguiente paso, ajustándose solo con entrenamiento.
+Las primeras ventanas de sensores que no tienen 3 o 24 mediciones completas quedan vacías. Si no existe un reemplazo anterior conocido, su tiempo también queda vacío. No se rellena con información futura. La ausencia de registros de errores se cuenta como cero, suponiendo un registro completo. La imputación de faltantes y la codificación se ajustan solo con entrenamiento dentro de los pipelines de modelado del notebook 05. La regresión logística también estandariza las variables numéricas; XGBoost no requiere ese escalado. Los CSV preparados se conservan sin estas transformaciones específicas del modelo.
 
 ### Etiquetas y partición temporal
 
@@ -152,4 +168,4 @@ Las dos etiquetas son respuestas futuras, no variables de entrada. `machineID` y
 
 El notebook 04 contrasta ejemplos de entrenamiento y validación con cálculos directos desde las fuentes: ventanas de sensores, conteos de errores, reemplazos y etiquetas. También verifica las claves, las fronteras y la estructura de los CSV exportados. El script incluye comprobaciones de integridad y separación temporal.
 
-La preparación actual no usa muestreo ni operaciones aleatorias: con los mismos CSV, dependencias y código se esperan los mismos conjuntos. Las semillas de los experimentos se documentarán cuando se implementen los modelos. Hasta entonces, no hay métricas de línea base ni resultados finales que regenerar.
+La preparación actual no usa muestreo ni operaciones aleatorias: con los mismos CSV, dependencias y código se esperan los mismos conjuntos. El notebook 05 fija la semilla 42 y los parámetros de los modelos. Al ejecutar sus celdas se regeneran las métricas de validación, las curvas y las matrices multiclase dentro del propio notebook, sin exportaciones adicionales. Estos son resultados de desarrollo; aún no hay evaluación final en prueba.
