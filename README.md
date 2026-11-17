@@ -4,13 +4,13 @@ Preparación de datos para anticipar si una máquina tendrá una falla en las si
 
 ## Estado del proyecto
 
-El proyecto incluye la preparación de datos, la línea base clásica y la comparación de modelos secuenciales. La segunda entrega añade LSTM, TCN y CNN-LSTM con dos salidas, comparación de estrategias de desbalance, curvas de aprendizaje y evaluación de alertas sostenidas en validación. El conjunto de prueba todavía no se ha evaluado.
+El proyecto incluye preparación de datos, línea base clásica, modelos secuenciales y una tercera etapa con Transformer, incertidumbre, calibración, interpretabilidad y política de mantenimiento. La evaluación final de prueba está guardada en el notebook 13: XGBoost con umbral 0.945, elegido con validación antes de esa evaluación. Los notebooks conservan sus explicaciones, tablas y gráficas; abrirlos permite consultar los resultados sin volver a entrenar.
 
 ### Cierre de la primera entrega
 
 La primera fase queda identificada con el tag **`entrega1`**, que conserva la versión del código correspondiente al reporte: revisión y EDA, análisis de mantenimiento, variables históricas, etiquetas, partición temporal y comparación de regresión logística y XGBoost en validación. Los resultados están en `Modelación/05_línea_base_clásica.ipynb`; el reporte se entrega por separado.
 
-La versión entregada puede consultarse en [GitHub: entrega1](https://github.com/emiliano-guzman/mantenimiento_reto/tree/entrega1). El trabajo de las siguientes fases podrá continuar en `main` sin mover este tag. La evaluación de modelos sobre prueba sigue reservada para la tercera semana.
+La versión entregada puede consultarse en [GitHub: entrega1](https://github.com/emiliano-guzman/mantenimiento_reto/tree/entrega1). El trabajo de las siguientes fases podrá continuar en `main` sin mover este tag. En esa versión, prueba todavía no se había evaluado.
 
 Para recuperar esta versión en una copia del repositorio:
 
@@ -35,7 +35,14 @@ git fetch --tags
 git switch --detach entrega2
 ```
 
-Para volver a la rama de trabajo: `git switch main`. Guardar o resguardar los cambios locales antes de cambiar de versión. Prueba sigue reservada para la tercera entrega, con el modelo y la política ya elegidos.
+Para volver a la rama de trabajo: `git switch main`. Guardar o resguardar los cambios locales antes de cambiar de versión. En esa segunda versión, prueba seguía reservada para la tercera etapa, con el modelo y la política por elegir en validación.
+
+
+### Tercera entrega
+
+Los notebooks 10–13 añaden el Transformer, MC Dropout y temperature scaling, Integrated Gradients por componente y una política económica comparada con operar hasta la falla y reemplazar por calendario. Se mantiene la partición temporal original. El modelo final es XGBoost; los análisis de calibración e interpretabilidad del Transformer describen esa red y no se trasladan a XGBoost.
+
+Las versiones anteriores permanecen identificadas por `entrega1` y `entrega2`. La sección de reproducción de esta tercera etapa explica qué se ejecuta, qué se reutiliza y cómo consultar la evaluación final guardada.
 
 
 ## Organización
@@ -66,6 +73,10 @@ Modelación/
 ├── 07_arquitecturas_secuenciales.ipynb
 ├── 08_desbalance_y_entrenamiento.ipynb
 ├── 09_comparación_y_anticipación.ipynb
+├── 10_transformer.ipynb
+├── 11_incertidumbre_calibración.ipynb
+├── 12_interpretabilidad.ipynb
+├── 13_política_mantenimiento.ipynb
 ├── arquitecturas_secuenciales.py
 └── entrenamiento_secuencial.py
 requirements.txt
@@ -126,7 +137,7 @@ Las dependencias se validan inicialmente en macOS con Apple Silicon y Python 3.1
 
 En el entorno local se observó un conflicto de bibliotecas nativas al entrenar XGBoost después de cargar PyTorch en el mismo proceso. Por eso el notebook 09 reproduce la línea base en un proceso separado, usando el mismo Python del entorno activo. Intercambia únicamente las probabilidades mediante un archivo temporal que se elimina automáticamente.
 
-Este aislamiento ya está incluido en el notebook: no hay que ejecutar un programa adicional ni conservar ese archivo temporal. El notebook 05 puede ejecutarse por separado en su propio kernel.
+Este aislamiento ya está incluido: no hay que ejecutar un programa adicional ni conservar el intercambio temporal. El notebook 13 también aísla XGBoost y mantiene temporalmente sus pipelines ajustados para aplicar exactamente los mismos objetos a prueba después de fijar la política; elimina esa carpeta al terminar. El notebook 05 puede ejecutarse por separado en su propio kernel.
 
 ## Regenerar los conjuntos preparados
 
@@ -177,7 +188,7 @@ La etiqueta binaria vale 1 si ocurre alguna falla en **(t, t + 24 h]**, y 0 si n
 
 Se exige que `t + 24 h` sea anterior al límite excluido de cada periodo. Así ninguna etiqueta de entrenamiento depende de septiembre ni una de validación de noviembre. En diciembre se retiran también las últimas 24 horas para no asumir seguimiento completo de fallas en 2016. Con los originales actuales se obtienen 580,200 filas de entrenamiento, 144,000 de validación y 144,000 de prueba.
 
-**Prueba se prepara y guarda, pero su evaluación queda reservada para la semana 3**, con el modelo y umbral ya elegidos. Los análisis de desbalance del notebook se limitan a entrenamiento y validación. No se utiliza prueba para seleccionar variables, modelos, hiperparámetros o umbrales.
+**Prueba se prepara y guarda desde el pipeline; su evaluación final se realiza en el notebook 13**, después de elegir modelo y umbral con validación. Los análisis de desbalance del notebook se limitan a entrenamiento y validación. No se utiliza prueba para seleccionar variables, modelos, hiperparámetros o umbrales.
 
 Las dos etiquetas son respuestas futuras, no variables de entrada. `machineID` y `datetime` son claves de identificación y tampoco se incorporan automáticamente como predictores.
 
@@ -243,12 +254,69 @@ Una alerta se confirma en la tercera hora consecutiva sobre el umbral, usando la
 
 Se exigen las 24 horas previas completas dentro de las anclas de validación. La anticipación se mide desde la confirmación y se resume entre eventos con alerta válida, junto con la cobertura. El diagnóstico distingue eventos sin confirmación dentro del horizonte y rachas ya confirmadas antes que permanecen activas: esas rachas no se vuelven a emitir ni se acreditan retrospectivamente. Una precisión de 0.80 por hora no garantiza la misma precisión por episodio.
 
-La comparación de calibración del 08 es descriptiva; no se ajustó todavía un calibrador. Toda esta evaluación usa validación y corresponde al desarrollo del modelo. **Prueba permanece reservada para la tercera entrega.**
+La comparación de calibración del 08 es descriptiva; no se ajustó todavía un calibrador. Toda esta evaluación usa validación y corresponde al desarrollo del modelo. **Los notebooks de la segunda etapa no evalúan prueba; la evaluación final está en el 13.**
+
+## Reproducir la tercera entrega
+
+Instalar las dependencias y regenerar los CSV preparados como se explica arriba. Conservar los notebooks anteriores y los módulos `.py` en sus ubicaciones: se reutilizan sus definiciones y algunas tablas guardadas. Los notebooks 10–13 pueden abrirse desde la raíz o desde `Modelación/`. Ejecutar las celdas de cada uno en orden solo si se desea reproducir sus cálculos; para consultar los resultados entregados basta leer sus salidas.
+
+| Notebook | Qué realiza | Reutilización y entrenamiento |
+|---|---|---|
+| `Modelación/10_transformer.ipynb` | Codificador Transformer con posición y token de máquina, dos salidas, entrenamiento y comparación en validación. | Ajusta una configuración con semilla 42; conserva la mejor época por AP. Lee la tabla guardada del 09 para comparar. |
+| `Modelación/11_incertidumbre_calibración.ipynb` | Veinte pasadas MC Dropout, Brier, diagramas de confiabilidad y ajuste de temperatura para ambas salidas. | Reutiliza el Transformer disponible o reconstruye su ajuste original. Dropout y calibración no actualizan sus pesos. |
+| `Modelación/12_interpretabilidad.ipynb` | Integrated Gradients: canales y horas de alertas por componente, aciertos y errores, sensibilidad a referencias y contraste con el EDA. | Reutiliza o reconstruye el Transformer. IG no entrena; requiere la tabla por componente guardada en el EDA 02. |
+| `Modelación/13_política_mantenimiento.ipynb` | Selección económica en validación, sensibilidad, evaluación final en prueba y comparación con dos referencias. | Ajusta XGBoost con las definiciones del 05; reutiliza CNN-LSTM y Transformer o reconstruye solo sus ajustes originales. Solo el ganador pasa a prueba. |
+
+### Dependencias entre notebooks y objetos en memoria
+
+No es necesario abrir y ejecutar toda la secuencia 01–13 para cada análisis. Los módulos de preparación y entrenamiento se importan directamente. El 10 necesita las salidas comparativas del 09 y el 12 la tabla del EDA 02: esas salidas están incluidas en los notebooks versionados. No borrarlas si se desea usar estas referencias sin recalcularlas.
+
+Los notebooks 11 y 12 reutilizan `resultado_transformer` y `preparacion_10` cuando existen en el mismo kernel. El 13 también puede reutilizar `resultados` del entrenamiento secuencial. Abrir un notebook distinto no garantiza compartir kernel. En una sesión nueva se reconstruyen los ajustes originales necesarios, por lo que la ejecución puede durar varios minutos y consumir memoria. No se exportan pesos permanentes: guardar un notebook conserva sus resultados visibles, no sus objetos de Python.
+
+El Transformer usa ventanas de 24 horas y 13 canales, dimensión 32, cuatro cabezas y dos capas; conserva el protocolo de entrenamiento del proyecto: CPU con un hilo, semilla 42, lotes de 512, AdamW, dropout, weight decay y parada temprana por AP de validación. MC Dropout utiliza 20 pasadas con semillas explícitas, sin modificar parámetros ni buffers. IG empieza con 64 pasos y refina a 256 o 512 cuando hace falta para cumplir la tolerancia numérica declarada.
+
+### Calibración e interpretabilidad sin consultar prueba
+
+El 11 ajusta las temperaturas con septiembre, dejando 24 horas de margen antes de octubre, y comprueba después en octubre. Son 69 600 anclas de ajuste, 2 400 de margen y 72 000 de comprobación. Octubre ya había participado en el desarrollo del modelo: esta comprobación no constituye un conjunto independiente ni reemplaza a prueba. Una mejora de Brier o log loss no garantiza mejorar todas las medidas de calibración; las tablas registran también esas diferencias.
+
+El 12 explica logits de la función determinista del Transformer, con dropout apagado. Usa referencias sanas de entrenamiento y casos de octubre; muestra contribuciones positivas y negativas por hora y canal. El contraste con el EDA compara sensores y direcciones, respetando que sus escalas y orígenes temporales son distintos. Las atribuciones describen el modelo respecto a referencias, no causas físicas. Modelo de máquina y antigüedad se mantienen fijos; no se les asigna una atribución propia.
+
+### Política, costos y evaluación final
+
+En el 13 se comparan XGBoost, CNN-LSTM ponderada con 24 horas y Transformer usando las mismas horas de validación. La cuadrícula contiene 1 002 alternativas por modelo: umbrales de 0 a 1 en pasos de 0.001 y no alertar. La decisión elegida fue **XGBoost con umbral 0.945**. Ese objetivo económico es distinto del umbral que exige precisión horaria de al menos 0.80 en las etapas anteriores.
+
+Una racha de tres horas sobre el umbral emite una sola acción; el componente propuesto es el más probable entre comp1–comp4 en la confirmación. Una acción se acredita solo si la siguiente falla de ese componente ocurre estrictamente después y dentro de 24 horas. Se acredita una sola intervención por falla y las acciones adicionales no reciben otro beneficio. Aquí la unidad es falla de componente, mientras que la anticipación binaria del 09 agrupaba componentes simultáneos por máquina y hora.
+
+Los costos son 15 000 por falla no anticipada, 3 000 por intervención acertada y 600 por acción sin un nuevo acierto. La sensibilidad varía la razón falla/falsa alarma entre 5, 10, 25, 50 y 100, manteniendo el acierto en 3 000 y la falsa alarma en 600; las alternativas se eligen únicamente con validación.
+
+Se compara con operar hasta la falla y con un calendario por componente entre 7, 14, 30, 60 y 90 días. Al permitir no programar, validación eligió esa opción. El notebook documenta que la referencia activa se completó en revisión después de la primera inferencia final, sin cambiar modelo ni umbral y sin nuevas predicciones de prueba. Sus intervalos finitos se eligieron de los candidatos ya evaluados en validación: 90 días para cada componente. La tabla no proporciona el costo de sustituir un componente sano; usar 600 para esa acción de calendario es un supuesto explícito.
+
+La evaluación final guardada sobre noviembre–diciembre contiene los siguientes costos, bajo esas reglas:
+
+| Política | Costo total en prueba |
+|---|---:|
+| Predictiva: XGBoost, umbral 0.945 | 453 000 |
+| Operar hasta la falla | 1 815 000 |
+| Calendario activo por componente | 1 884 600 |
+
+El 13 registra el acta y su huella antes de la inferencia final del modelo elegido. En el mismo kernel, repetir la celda final reutiliza los resultados si la huella coincide. **Para revisar prueba, leer las salidas ya guardadas.** En un kernel nuevo, ejecutar todo reconstruye el protocolo y reproduce sus resultados; no debe convertirse en una búsqueda de mejores decisiones mirando prueba. No se ajustan normalizadores, pesos, temperaturas ni umbrales con ese conjunto.
+
+### Alcance de los resultados y datos reales
+
+La exactitud global (`accuracy`) no se utiliza como métrica principal ante el desbalance. Se presentan AP/PR-AUC, ROC-AUC, precisión y recall, F1 por componente, calibración, anticipación y costos según la etapa. Las métricas por hora, por acción y por falla tienen denominadores diferentes y no se intercambian.
+
+Los datos son simulados. En una planta real, la deriva de sensores podría exigir vigilar sus distribuciones y revisar las escalas; los faltantes podrían requerir reglas basadas en disponibilidad y evaluación temporal; los mantenimientos incompletos volverían inciertas las horas desde reemplazo. Contar ausencia de errores como cero supone que el registro está completo: con interrupciones de captura habría que distinguir ausencia de evento de ausencia de información. Estas situaciones no se simularon en este proyecto.
+
+Los costos representan una reproducción retrospectiva: las acciones virtuales no cambian los sensores, las fallas ni los mantenimientos históricos posteriores. Tampoco se modelan repuestos, técnicos o duración de paros. La diferencia de costos no demuestra ahorro real ni fallas efectivamente evitadas. Se incluyen las fallas cercanas a fronteras, mostrando cuáles no tienen las 24 horas anteriores completas en las anclas disponibles.
+
+La sección 6 del notebook 13 añade una revisión temporal conjunta de cuatro máquinas de validación: probabilidad binaria, confirmaciones de alerta, errores por tipo, reemplazos y fallas por componente. Selecciona ejemplos por fecha y componente, sin elegirlos por aciertos; reutiliza las probabilidades existentes y no entrena ni consulta prueba. Se añadió como diagnóstico descriptivo después de fijar el protocolo y no modificó decisiones finales. Las curvas agregadas del EDA y los mapas de IG complementan esta inspección, sin demostrar causalidad.
 
 ## Comprobaciones y reproducibilidad
 
 El notebook 04 contrasta ejemplos de entrenamiento y validación con cálculos directos desde las fuentes: ventanas de sensores, conteos de errores, reemplazos y etiquetas. También verifica las claves, las fronteras y la estructura de los CSV exportados. El script incluye comprobaciones de integridad y separación temporal.
 
-La preparación actual no usa muestreo ni operaciones aleatorias: con los mismos CSV, dependencias y código se esperan los mismos conjuntos. El notebook 05 fija la semilla 42 y los parámetros de los modelos. Al ejecutar sus celdas se regeneran las métricas de validación, las curvas y las matrices multiclase dentro del propio notebook, sin exportaciones adicionales. Estos son resultados de desarrollo; aún no hay evaluación final en prueba.
+La preparación actual no usa muestreo ni operaciones aleatorias: con los mismos CSV, dependencias y código se esperan los mismos conjuntos. El notebook 05 fija la semilla 42 y los parámetros de los modelos. Al ejecutar sus celdas se regeneran las métricas de validación, las curvas y las matrices multiclase dentro del propio notebook, sin exportaciones adicionales. Los resultados del 05 son de desarrollo en validación; la evaluación final de prueba se encuentra en el 13.
 
 Los notebooks 06 y 07 comprueban además la preparación temporal, las formas de los lotes y la causalidad de las redes. El 09 verifica la alineación de claves y etiquetas y prueba la regla de alertas con ejemplos conocidos, incluyendo huecos y confirmación en la tercera hora. Las semillas y operaciones deterministas ayudan a repetir la ejecución; pueden existir pequeñas diferencias numéricas entre plataformas.
+
+Los notebooks 10–12 comprueban arquitectura, parámetros sin cambios durante MC/IG y precisión numérica de las atribuciones. El 13 verifica continuidad de alertas, duplicados, componente equivocado y horizonte estrictamente futuro. Las comprobaciones acompañan los resultados; no sustituyen una auditoría de la disponibilidad real de cada registro.
