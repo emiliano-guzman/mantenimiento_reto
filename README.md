@@ -38,11 +38,20 @@ git switch --detach entrega2
 Para volver a la rama de trabajo: `git switch main`. Guardar o resguardar los cambios locales antes de cambiar de versión. En esa segunda versión, prueba seguía reservada para la tercera etapa, con el modelo y la política por elegir en validación.
 
 
-### Tercera entrega
+### Cierre de la tercera entrega
 
 Los notebooks 10–13 añaden el Transformer, MC Dropout y temperature scaling, Integrated Gradients por componente y una política económica comparada con operar hasta la falla y reemplazar por calendario. Se mantiene la partición temporal original. El modelo final es XGBoost; los análisis de calibración e interpretabilidad del Transformer describen esa red y no se trasladan a XGBoost.
 
-Las versiones anteriores permanecen identificadas por `entrega1` y `entrega2`. La sección de reproducción de esta tercera etapa explica qué se ejecuta, qué se reutiliza y cómo consultar la evaluación final guardada.
+El tag **`entrega3`** conserva esta versión de cierre: notebooks 01–13, módulos compartidos, dependencias y documentación de reproducción. Puede consultarse en [GitHub: entrega3](https://github.com/emiliano-guzman/mantenimiento_reto/tree/entrega3). Los tags `entrega1`, `entrega2` y `entrega3` permanecen fijos; el trabajo posterior puede continuar en `main` sin moverlos.
+
+Para recuperar esta versión:
+
+```bash
+git fetch --tags
+git switch --detach entrega3
+```
+
+Para volver a la rama de trabajo: `git switch main`. Guardar o resguardar los cambios locales antes de cambiar de versión. La sección de reproducción de esta tercera etapa explica qué se ejecuta, qué se reutiliza y cómo consultar la evaluación final guardada sin repetirla.
 
 
 ## Organización
